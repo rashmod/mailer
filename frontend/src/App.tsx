@@ -1,45 +1,73 @@
-import { FormEvent } from "react";
 import { Button } from "./components/ui/button";
 import axios from "axios";
+import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+
+type EmailFormValues = {
+  to: string;
+  subject: string;
+  text: string;
+};
 
 export default function App() {
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const { register, handleSubmit, reset } = useForm<EmailFormValues>();
 
-    const to = event.currentTarget.to.value;
-    const subject = event.currentTarget.subject.value;
-    const text = event.currentTarget.text.value;
+  const mutation = useMutation({
+    mutationFn: (emailData: EmailFormValues) => {
+      return axios.post(import.meta.env.VITE_BACKEND_URL, emailData);
+    },
+  });
 
-    const response = await axios.post(import.meta.env.VITE_BACKEND_URL, {
-      to,
-      subject,
-      text,
+  const onSubmit = (data: EmailFormValues) => {
+    mutation.mutate(data, {
+      onSuccess: () => {
+        alert("Email sent successfully!");
+        reset();
+      },
+      onError: (error: any) => {
+        console.error("Error sending email:", error);
+        alert("Failed to send email");
+      },
     });
-
-    const data = await response.data;
-
-    console.log(data);
-  }
+  };
 
   return (
     <main className="container min-h-screen p-24">
-      <form onSubmit={onSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div>
-          <label htmlFor="to">Receiver Email</label>
-          <input type="text" name="to" id="to" />
+          <label htmlFor="receiver">Receiver's Email:</label>
+          <input
+            id="receiver"
+            {...register("to", { required: true })}
+            placeholder="example@example.com"
+          />
         </div>
 
         <div>
-          <label htmlFor="subject">Subject</label>
-          <input type="text" name="subject" id="subject" />
+          <label htmlFor="subject">Subject:</label>
+          <input
+            id="subject"
+            {...register("subject", { required: true })}
+            placeholder="Subject"
+          />
         </div>
 
         <div>
-          <label htmlFor="text">Message</label>
-          <input type="text" name="text" id="text" />
+          <label htmlFor="text">Message Body:</label>
+          <textarea
+            id="text"
+            {...register("text", { required: true })}
+            placeholder="Your message..."
+          />
         </div>
 
-        <Button>Submit</Button>
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? "Sending..." : "Send Email"}
+        </Button>
+
+        {mutation.isError && (
+          <p style={{ color: "red" }}>Error sending email</p>
+        )}
       </form>
     </main>
   );
