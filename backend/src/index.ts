@@ -1,9 +1,11 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
+import cors from 'cors';
 import 'dotenv/config';
 
 const app = express();
 app.use(express.json());
+app.use(cors({ origin: '*' }));
 
 app.post('/', async (req, res) => {
 	const { to, subject, text } = req.body;
