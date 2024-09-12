@@ -2,27 +2,50 @@ import { Button } from "./components/ui/button";
 import axios from "axios";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-type EmailFormValues = {
-  to: string;
-  subject: string;
-  text: string;
-};
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "./components/ui/textarea";
+
+const formSchema = z.object({
+  to: z.string().email(),
+  subject: z.string().min(1).max(100),
+  text: z.string().min(1).max(1000),
+});
+
+type formValues = z.infer<typeof formSchema>;
 
 export default function App() {
-  const { register, handleSubmit, reset } = useForm<EmailFormValues>();
+  const form = useForm<formValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      to: "",
+      subject: "",
+      text: "",
+    },
+  });
 
   const mutation = useMutation({
-    mutationFn: (emailData: EmailFormValues) => {
+    mutationFn: (emailData: formValues) => {
       return axios.post(import.meta.env.VITE_BACKEND_URL, emailData);
     },
   });
 
-  const onSubmit = (data: EmailFormValues) => {
+  const onSubmit = (data: formValues) => {
     mutation.mutate(data, {
       onSuccess: () => {
         alert("Email sent successfully!");
-        reset();
+        form.reset();
       },
       onError: (error: any) => {
         console.error("Error sending email:", error);
@@ -33,42 +56,57 @@ export default function App() {
 
   return (
     <main className="container min-h-screen p-24">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label htmlFor="receiver">Receiver's Email:</label>
-          <input
-            id="receiver"
-            {...register("to", { required: true })}
-            placeholder="example@example.com"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="to"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Receiver's Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="example@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-
-        <div>
-          <label htmlFor="subject">Subject:</label>
-          <input
-            id="subject"
-            {...register("subject", { required: true })}
-            placeholder="Subject"
+          <FormField
+            control={form.control}
+            name="subject"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subject</FormLabel>
+                <FormControl>
+                  <Input placeholder="Application" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-
-        <div>
-          <label htmlFor="text">Message Body:</label>
-          <textarea
-            id="text"
-            {...register("text", { required: true })}
-            placeholder="Your message..."
+          <FormField
+            control={form.control}
+            name="text"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Message Body</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Your message" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
 
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Sending..." : "Send Email"}
-        </Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? "Sending..." : "Send Email"}
+          </Button>
 
-        {mutation.isError && (
-          <p style={{ color: "red" }}>Error sending email</p>
-        )}
-      </form>
+          {mutation.isError && (
+            <p style={{ color: "red" }}>Error sending email</p>
+          )}
+        </form>
+      </Form>
     </main>
   );
 }
