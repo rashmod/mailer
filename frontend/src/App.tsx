@@ -10,7 +10,7 @@ export default function App() {
     const subject = event.currentTarget.subject.value;
     const text = event.currentTarget.text.value;
 
-    const response = await axios.post("http://localhost:3000", {
+    const response = await axios.post(import.meta.env.VITE_BACKEND_URL, {
       to,
       subject,
       text,
